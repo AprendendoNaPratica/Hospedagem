@@ -1,0 +1,794 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador e Comparador de Hotéis</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        /* Custom scrollbar for better visual feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm border border-white/20">
+                    <i class="fa-solid me-0 fa-hotel text-2xl text-yellow-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">HotelSearch <span class="text-xs bg-yellow-400 text-blue-900 px-2 py-0.5 rounded-full font-semibold">PRO</span></h1>
+                    <p class="text-xs text-blue-100 hidden sm:block">Comparador Inteligente & Gerador de Links Diretos</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <button onclick="switchTab('search')" id="tabBtnSearch" class="px-3.5 py-2 rounded-lg text-sm font-medium transition-all bg-white/20 text-white shadow-inner flex items-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    <span>Buscar</span>
+                </button>
+                <button onclick="switchTab('favorites')" id="tabBtnFavs" class="px-3.5 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10 text-blue-100 flex items-center gap-2 relative">
+                    <i class="fa-solid fa-heart text-xs text-pink-300"></i>
+                    <span>Salvos</span>
+                    <span id="favCountBadge" class="hidden absolute -top-1 -right-1 bg-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                </button>
+                <button onclick="switchTab('history')" id="tabBtnHistory" class="px-3.5 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10 text-blue-100 flex items-center gap-2">
+                    <i class="fa-solid fa-history text-xs"></i>
+                    <span class="hidden md:inline">Histórico</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+        <!-- Search Tab -->
+        <div id="tabSearch" class="space-y-6">
+            
+            <!-- Search Form Box -->
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200/80 p-5 sm:p-7 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -z-10 opacity-70"></div>
+                
+                <h2 class="text-lg sm:text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-blue-600"></i> Parâmetros da sua Viagem
+                </h2>
+
+                <form id="searchForm" onsubmit="executeSearch(event)" class="space-y-5">
+                    <!-- Basic Search Fields Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+                        
+                        <!-- Destination -->
+                        <div class="lg:col-span-4">
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                                Destino / Cidade
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                </span>
+                                <input type="text" id="destination" required placeholder="Ex: Gramado, RJ, Florianópolis..." 
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm text-slate-800 font-medium placeholder-slate-400">
+                            </div>
+                        </div>
+
+                        <!-- Check-in -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                                Entrada (Check-in)
+                            </label>
+                            <input type="date" id="checkin" required
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm text-slate-800 font-medium">
+                        </div>
+
+                        <!-- Check-out -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                                Saída (Check-out)
+                            </label>
+                            <input type="date" id="checkout" required
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm text-slate-800 font-medium">
+                        </div>
+
+                        <!-- Adults -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                                Adultos
+                            </label>
+                            <select id="adults" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 text-sm font-medium text-slate-800">
+                                <option value="1">1 Adulto</option>
+                                <option value="2" selected>2 Adultos</option>
+                                <option value="3">3 Adultos</option>
+                                <option value="4">4 Adultos</option>
+                                <option value="5">5+ Adultos</option>
+                            </select>
+                        </div>
+
+                        <!-- Children -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                                Crianças
+                            </label>
+                            <select id="children" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 text-sm font-medium text-slate-800">
+                                <option value="0" selected>Sem Crianças</option>
+                                <option value="1">1 Criança</option>
+                                <option value="2">2 Crianças</option>
+                                <option value="3">3+ Crianças</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Filter Preferences & Checkboxes -->
+                    <div class="pt-2 border-t border-slate-100 space-y-4">
+                        <div class="flex flex-wrap gap-3 items-center justify-between">
+                            <div class="flex flex-wrap gap-3">
+                                <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer text-xs font-medium text-slate-700 transition-colors">
+                                    <input type="checkbox" id="filterBreakfast" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+                                    <i class="fa-solid fa-mug-hot text-amber-600"></i> Café da Manhã Incluso
+                                </label>
+
+                                <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer text-xs font-medium text-slate-700 transition-colors">
+                                    <input type="checkbox" id="filterPets" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+                                    <i class="fa-solid fa-dog text-amber-700"></i> Aceita Animais (Pets)
+                                </label>
+
+                                <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer text-xs font-medium text-slate-700 transition-colors">
+                                    <input type="checkbox" id="filterKidsFree" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+                                    <i class="fa-solid fa-child text-emerald-600"></i> Crianças Grátis
+                                </label>
+                            </div>
+
+                            <!-- Max Price Range Slider -->
+                            <div class="flex items-center gap-3 w-full sm:w-auto bg-slate-50 p-2 rounded-xl border border-slate-200">
+                                <label class="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                                    <i class="fa-solid fa-dollar-sign text-emerald-600"></i> Máx/noite: <span id="maxPriceValue" class="text-blue-600 font-bold">R$ 1000</span>
+                                </label>
+                                <input type="range" id="filterMaxPrice" min="100" max="1000" step="50" value="1000" oninput="document.getElementById('maxPriceValue').innerText = 'R$ ' + this.value" class="w-28 sm:w-36 accent-blue-600 cursor-pointer">
+                            </div>
+                        </div>
+
+                        <!-- Action Submit Button -->
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 hover:scale-[1.02]">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <span>Buscar & Comparar</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- External Aggregators Links Hub -->
+            <div id="aggregatorsHub" class="bg-slate-800 text-white rounded-2xl p-5 shadow-lg border border-slate-700">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-700">
+                    <div>
+                        <h3 class="font-bold text-base flex items-center gap-2 text-yellow-400">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Busca nos Grandes Portais da Web
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Links gerados dinamicamente com seus parâmetros e datas pré-preenchidos:</p>
+                    </div>
+                    <span class="text-xs bg-slate-700 text-slate-300 px-3 py-1 rounded-full w-fit">Abertura direta e segura na web</span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="aggregatorButtons">
+                    <!-- Generated via JS -->
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsContainer" class="space-y-4">
+                
+                <!-- Results Control Bar -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base" id="resultsCountTitle">Resultados Disponíveis</h3>
+                        <p class="text-xs text-slate-500" id="resultsSubtitle">Preencha o destino e clique em buscar.</p>
+                    </div>
+
+                    <!-- Sorting Options -->
+                    <div class="flex items-center gap-2 self-end sm:self-auto">
+                        <span class="text-xs font-semibold text-slate-500 whitespace-nowrap">Ordenar por:</span>
+                        <select id="sortOption" onchange="sortAndRenderResults()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 font-medium focus:ring-2 focus:ring-blue-500">
+                            <option value="recommended">Recomendados / Melhores</option>
+                            <option value="price_asc">Menor Preço</option>
+                            <option value="price_desc">Maior Preço</option>
+                            <option value="rating_desc">Melhor Avaliação</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hotel List Cards Grid -->
+                <div id="hotelsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Cards injected dynamically via JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Favorites Tab -->
+        <div id="tabFavorites" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-heart text-pink-500"></i> Hotéis Salvos
+                    </h2>
+                    <p class="text-xs text-slate-500">Sua lista de hospedagens favoritas salvas para consultar depois.</p>
+                </div>
+                <button onclick="clearFavorites()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">Limpar Salvos</button>
+            </div>
+
+            <div id="favoritesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Favorites injected dynamically -->
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="tabHistory" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-history text-blue-600"></i> Histórico de Pesquisas
+                    </h2>
+                    <p class="text-xs text-slate-500">Suas buscas recentes ficam armazenadas aqui.</p>
+                </div>
+                <button onclick="clearHistory()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">Limpar Histórico</button>
+            </div>
+
+            <div id="historyList" class="space-y-3">
+                <!-- History items injected dynamically -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-xs mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p class="font-medium text-slate-300">HotelSearch PRO &copy; Buscador e Gerador Inteligente de Links de Hospedagem</p>
+            <p class="text-slate-500">Conexão direta com os principais motores de busca da web: Google Hoteis, Booking.com, Airbnb e Trivago.</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Box -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 flex items-center gap-2 z-50">
+        <i class="fa-solid fa-circle-info text-blue-400 text-sm"></i>
+        <span id="toastMsg">Notificação</span>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let currentResults = [];
+        let favorites = JSON.parse(localStorage.getItem('hotel_favs') || '[]');
+        let searchHistory = JSON.parse(localStorage.getItem('hotel_history') || '[]');
+        let currentNights = 1;
+
+        // --- Sample Hotel Database for Dynamic Simulation ---
+        const hotelTemplates = [
+            {
+                namePrefix: "Grand Palace Hotel & Spa",
+                stars: 5,
+                basePrice: 420,
+                rating: 4.9,
+                reviews: 1240,
+                breakfast: true,
+                pets: false,
+                kidsFree: true,
+                image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
+                type: "Hotel Luxo"
+            },
+            {
+                namePrefix: "Pousada Recanto Primavera",
+                stars: 4,
+                basePrice: 210,
+                rating: 4.7,
+                reviews: 512,
+                breakfast: true,
+                pets: true,
+                kidsFree: true,
+                image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80",
+                type: "Pousada Aconchegante"
+            },
+            {
+                namePrefix: "Boutique Hotel Center",
+                stars: 4,
+                basePrice: 310,
+                rating: 4.6,
+                reviews: 830,
+                breakfast: false,
+                pets: true,
+                kidsFree: false,
+                image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80",
+                type: "Hotel Design"
+            },
+            {
+                namePrefix: "Resort & Convenções Park",
+                stars: 5,
+                basePrice: 580,
+                rating: 4.8,
+                reviews: 2100,
+                breakfast: true,
+                pets: false,
+                kidsFree: true,
+                image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=600&q=80",
+                type: "Resort Completo"
+            },
+            {
+                namePrefix: "Flat Executive Smart",
+                stars: 3,
+                basePrice: 160,
+                rating: 4.3,
+                reviews: 320,
+                breakfast: false,
+                pets: false,
+                kidsFree: false,
+                image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=600&q=80",
+                type: "Flat / Apartamento"
+            },
+            {
+                namePrefix: "Pousada Solar das Flores",
+                stars: 4,
+                basePrice: 260,
+                rating: 4.8,
+                reviews: 640,
+                breakfast: true,
+                pets: true,
+                kidsFree: true,
+                image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=600&q=80",
+                type: "Pousada Charmosa"
+            }
+        ];
+
+        // --- Initialization ---
+        window.onload = function() {
+            // Set default dates (Today and +3 days)
+            const today = new Date();
+            const defaultCheckin = new Date(today);
+            defaultCheckin.setDate(today.getDate() + 10);
+            
+            const defaultCheckout = new Date(defaultCheckin);
+            defaultCheckout.setDate(defaultCheckin.getDate() + 3);
+
+            document.getElementById('checkin').value = formatDateForInput(defaultCheckin);
+            document.getElementById('checkout').value = formatDateForInput(defaultCheckout);
+
+            // Set default destination
+            document.getElementById('destination').value = "Gramado, RS";
+
+            updateFavBadge();
+            renderAggregatorHub("Gramado, RS", formatDateForInput(defaultCheckin), formatDateForInput(defaultCheckout), 2);
+
+            // Execute initial search automatically
+            executeSearch(new Event('submit'));
+        };
+
+        function formatDateForInput(dateObj) {
+            return dateObj.toISOString().split('T')[0];
+        }
+
+        // --- Tab Navigation ---
+        function switchTab(tab) {
+            const tabs = ['search', 'favorites', 'history'];
+            tabs.forEach(t => {
+                const el = document.getElementById('tab' + capitalize(t));
+                const btn = document.getElementById('tabBtn' + (t === 'search' ? 'Search' : t === 'favorites' ? 'Favs' : 'History'));
+                
+                if (t === tab) {
+                    el.classList.remove('hidden');
+                    btn.classList.add('bg-white/20', 'text-white');
+                    btn.classList.remove('hover:bg-white/10', 'text-blue-100');
+                } else {
+                    el.classList.add('hidden');
+                    btn.classList.remove('bg-white/20', 'text-white');
+                    btn.classList.add('hover:bg-white/10', 'text-blue-100');
+                }
+            });
+
+            if (tab === 'favorites') renderFavorites();
+            if (tab === 'history') renderHistory();
+        }
+
+        function capitalize(s) {
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        // --- Search Logic ---
+        function executeSearch(e) {
+            if (e) e.preventDefault();
+
+            const destination = document.getElementById('destination').value.trim();
+            const checkin = document.getElementById('checkin').value;
+            const checkout = document.getElementById('checkout').value;
+            const adults = parseInt(document.getElementById('adults').value);
+            const children = parseInt(document.getElementById('children').value);
+
+            const filterBreakfast = document.getElementById('filterBreakfast').checked;
+            const filterPets = document.getElementById('filterPets').checked;
+            const filterKidsFree = document.getElementById('filterKidsFree').checked;
+            const maxPrice = parseInt(document.getElementById('filterMaxPrice').value);
+
+            if (!destination) {
+                showToast("Por favor, digite o destino da sua viagem.");
+                return;
+            }
+
+            // Calculate nights
+            const date1 = new Date(checkin);
+            const date2 = new Date(checkout);
+            const diffTime = date2 - date1;
+            currentNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+            if (isNaN(currentNights) || currentNights <= 0) {
+                showToast("Data de check-out deve ser posterior à data de check-in.");
+                return;
+            }
+
+            // Render live Web Aggregators Hub Links
+            renderAggregatorHub(destination, checkin, checkout, adults);
+
+            // Generate Simulated Realistic Hotels
+            currentResults = generateHotelResults(destination, filterBreakfast, filterPets, filterKidsFree, maxPrice);
+            
+            // Save search to local history
+            saveToHistory(destination, checkin, checkout, adults, children);
+
+            // Render Results
+            sortAndRenderResults();
+
+            document.getElementById('resultsSubtitle').innerText = `${currentResults.length} acomodações encontradas em ${destination} (${currentNights} noite${currentNights > 1 ? 's' : ''})`;
+            showToast(`Busca realizada para ${destination}!`);
+        }
+
+        // --- External Live Links Generator ---
+        function renderAggregatorHub(city, checkin, checkout, adults) {
+            const container = document.getElementById('aggregatorButtons');
+            const encCity = encodeURIComponent(city);
+
+            const googleUrl = `https://www.google.com/travel/hotels?q=${encCity}`;
+            const bookingUrl = `https://www.booking.com/searchresults.pt-br.html?ss=${encCity}&checkin=${checkin}&checkout=${checkout}&group_adults=${adults}`;
+            const airbnbUrl = `https://www.airbnb.com.br/s/${encCity}/homes?checkin=${checkin}&checkout=${checkout}&adults=${adults}`;
+            const trivagoUrl = `https://www.trivago.com.br/pt-BR/srl?q=${encCity}`;
+
+            container.innerHTML = `
+                <a href="${googleUrl}" target="_blank" class="bg-slate-700 hover:bg-blue-600 p-3 rounded-xl flex items-center gap-2.5 transition-all group border border-slate-600 hover:border-blue-500">
+                    <i class="fa-brands fa-google text-red-400 group-hover:text-white text-lg"></i>
+                    <div class="text-left overflow-hidden">
+                        <div class="font-bold text-xs group-hover:text-white truncate">Google Hotéis</div>
+                        <div class="text-[10px] text-slate-300">Abre Pesquisa Direta 🔗</div>
+                    </div>
+                </a>
+
+                <a href="${bookingUrl}" target="_blank" class="bg-slate-700 hover:bg-blue-600 p-3 rounded-xl flex items-center gap-2.5 transition-all group border border-slate-600 hover:border-blue-500">
+                    <i class="fa-solid fa-b text-blue-400 group-hover:text-white text-lg font-black"></i>
+                    <div class="text-left overflow-hidden">
+                        <div class="font-bold text-xs group-hover:text-white truncate">Booking.com</div>
+                        <div class="text-[10px] text-slate-300">Abre Filtro Oficial 🔗</div>
+                    </div>
+                </a>
+
+                <a href="${airbnbUrl}" target="_blank" class="bg-slate-700 hover:bg-rose-600 p-3 rounded-xl flex items-center gap-2.5 transition-all group border border-slate-600 hover:border-rose-400">
+                    <i class="fa-brands fa-airbnb text-rose-400 group-hover:text-white text-lg"></i>
+                    <div class="text-left overflow-hidden">
+                        <div class="font-bold text-xs group-hover:text-white truncate">Airbnb</div>
+                        <div class="text-[10px] text-slate-300">Casas & Apts 🔗</div>
+                    </div>
+                </a>
+
+                <a href="${trivagoUrl}" target="_blank" class="bg-slate-700 hover:bg-amber-600 p-3 rounded-xl flex items-center gap-2.5 transition-all group border border-slate-600 hover:border-amber-400">
+                    <i class="fa-solid fa-compass text-amber-400 group-hover:text-white text-lg"></i>
+                    <div class="text-left overflow-hidden">
+                        <div class="font-bold text-xs group-hover:text-white truncate">Trivago</div>
+                        <div class="text-[10px] text-slate-300">Comparar Ofertas 🔗</div>
+                    </div>
+                </a>
+            `;
+        }
+
+        // --- Data Generator ---
+        function generateHotelResults(city, reqBreakfast, reqPets, reqKids, maxPrice) {
+            const cleanCity = city.split(',')[0].trim();
+            
+            return hotelTemplates.map((tpl, index) => {
+                // Determine suitability for checkboxes
+                const breakfast = reqBreakfast ? true : tpl.breakfast;
+                const pets = reqPets ? true : tpl.pets;
+                const kidsFree = reqKids ? true : tpl.kidsFree;
+
+                // Variations based on city name
+                const hotelName = `${tpl.namePrefix} ${cleanCity}`;
+                const nightPrice = tpl.basePrice + (index * 25);
+                const totalPrice = nightPrice * currentNights;
+
+                // Direct web search link for this specific hotel
+                const directGoogleHotelUrl = `https://www.google.com/travel/hotels?q=${encodeURIComponent(hotelName)}`;
+
+                return {
+                    id: 'hotel_' + index + '_' + Date.now(),
+                    name: hotelName,
+                    type: tpl.type,
+                    stars: tpl.stars,
+                    nightPrice: nightPrice,
+                    totalPrice: totalPrice,
+                    rating: tpl.rating,
+                    reviews: tpl.reviews,
+                    breakfast: breakfast,
+                    pets: pets,
+                    kidsFree: kidsFree,
+                    image: tpl.image,
+                    link: directGoogleHotelUrl
+                };
+            }).filter(h => {
+                if (reqBreakfast && !h.breakfast) return false;
+                if (reqPets && !h.pets) return false;
+                if (reqKids && !h.kidsFree) return false;
+                if (maxPrice && h.nightPrice > maxPrice) return false;
+                return true;
+            });
+        }
+
+        // --- Sort & Render Results ---
+        function sortAndRenderResults() {
+            const sortVal = document.getElementById('sortOption').value;
+
+            if (sortVal === 'price_asc') {
+                currentResults.sort((a, b) => a.nightPrice - b.nightPrice);
+            } else if (sortVal === 'price_desc') {
+                currentResults.sort((a, b) => b.nightPrice - a.nightPrice);
+            } else if (sortVal === 'rating_desc') {
+                currentResults.sort((a, b) => b.rating - a.rating);
+            }
+
+            renderHotelGrid(currentResults, 'hotelsGrid');
+        }
+
+        function renderHotelGrid(hotels, containerId) {
+            const grid = document.getElementById(containerId);
+            
+            if (hotels.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white p-8 rounded-2xl text-center text-slate-500 border border-slate-200">
+                        <i class="fa-solid fa-hotel text-4xl text-slate-300 mb-3"></i>
+                        <p class="font-bold text-slate-700">Nenhum hotel encontrado com os filtros selecionados.</p>
+                        <p class="text-xs text-slate-400 mt-1">Tente desmarcar algumas preferências para ver mais opções.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = hotels.map(hotel => {
+                const isFav = favorites.some(f => f.name === hotel.name);
+
+                return `
+                    <div class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm card-hover flex flex-col justify-between">
+                        <div>
+                            <!-- Hotel Image & Badges -->
+                            <div class="relative h-48 bg-slate-200">
+                                <img src="${hotel.image}" alt="${hotel.name}" class="w-full h-full object-cover">
+                                <div class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                                    ${hotel.type}
+                                </div>
+                                <button onclick="toggleFavorite('${encodeURIComponent(JSON.stringify(hotel))}')" class="absolute top-3 right-3 bg-white/90 hover:bg-white text-slate-700 p-2 rounded-full shadow-md transition-all">
+                                    <i class="fa-solid fa-heart ${isFav ? 'text-pink-600' : 'text-slate-400'}"></i>
+                                </button>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="p-5 space-y-3">
+                                <div>
+                                    <div class="flex items-center gap-1 text-amber-400 text-xs mb-1">
+                                        ${'<i class="fa-solid fa-star"></i>'.repeat(hotel.stars)}
+                                    </div>
+                                    <h4 class="font-bold text-slate-800 text-base leading-snug">${hotel.name}</h4>
+                                </div>
+
+                                <!-- Rating & Reviews -->
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded-lg">${hotel.rating.toFixed(1)}</span>
+                                    <span class="text-xs font-semibold text-slate-700">Excelente</span>
+                                    <span class="text-xs text-slate-400">(${hotel.reviews} avaliações)</span>
+                                </div>
+
+                                <!-- Dynamic Badges -->
+                                <div class="flex flex-wrap gap-1.5 pt-1">
+                                    ${hotel.breakfast ? '<span class="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2 py-0.5 rounded-md font-medium"><i class="fa-solid fa-mug-hot text-xs mr-1"></i> Café Incluso</span>' : '<span class="bg-slate-100 text-slate-500 text-[11px] px-2 py-0.5 rounded-md">Café Não Incluso</span>'}
+                                    ${hotel.pets ? '<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] px-2 py-0.5 rounded-md font-medium"><i class="fa-solid fa-dog text-xs mr-1"></i> Aceita Pets</span>' : ''}
+                                    ${hotel.kidsFree ? '<span class="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] px-2 py-0.5 rounded-md font-medium"><i class="fa-solid fa-child text-xs mr-1"></i> Crianças Grátis</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer Price & Action -->
+                        <div class="p-5 pt-0 mt-2 border-t border-slate-100 flex items-end justify-between">
+                            <div>
+                                <span class="text-xs text-slate-400 block">A partir de</span>
+                                <span class="text-xl font-black text-slate-900">R$ ${hotel.nightPrice}</span>
+                                <span class="text-[11px] text-slate-500 block">/ noite (Est. R$ ${hotel.totalPrice} total)</span>
+                            </div>
+
+                            <a href="${hotel.link}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                                <span>Abrir na Web</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- Favorites Handling ---
+        function toggleFavorite(hotelJsonStr) {
+            const hotel = JSON.parse(decodeURIComponent(hotelJsonStr));
+            const index = favorites.findIndex(f => f.name === hotel.name);
+
+            if (index >= 0) {
+                favorites.splice(index, 1);
+                showToast("Hotel removido dos Salvos.");
+            } else {
+                favorites.push(hotel);
+                showToast("Hotel adicionado aos Salvos!");
+            }
+
+            localStorage.setItem('hotel_favs', JSON.stringify(favorites));
+            updateFavBadge();
+
+            // Refresh view
+            sortAndRenderResults();
+            if (!document.getElementById('tabFavorites').classList.contains('hidden')) {
+                renderFavorites();
+            }
+        }
+
+        function updateFavBadge() {
+            const badge = document.getElementById('favCountBadge');
+            if (favorites.length > 0) {
+                badge.innerText = favorites.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderFavorites() {
+            renderHotelGrid(favorites, 'favoritesGrid');
+        }
+
+        function clearFavorites() {
+            favorites = [];
+            localStorage.setItem('hotel_favs', JSON.stringify([]));
+            updateFavBadge();
+            renderFavorites();
+            showToast("Lista de favoritos limpa.");
+        }
+
+        // --- History Handling ---
+        function saveToHistory(city, checkin, checkout, adults, children) {
+            const item = {
+                city, checkin, checkout, adults, children,
+                timestamp: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
+            };
+
+            // Avoid immediate duplicate
+            searchHistory = searchHistory.filter(h => h.city !== city || h.checkin !== checkin);
+            searchHistory.unshift(item);
+
+            if (searchHistory.length > 10) searchHistory.pop(); // Keep last 10
+
+            localStorage.setItem('hotel_history', JSON.stringify(searchHistory));
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+
+            if (searchHistory.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-white p-8 rounded-2xl text-center text-slate-500 border border-slate-200">
+                        <i class="fa-solid fa-history text-3xl text-slate-300 mb-2"></i>
+                        <p class="font-semibold text-slate-700">Seu histórico está vazio.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = searchHistory.map(item => `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-blue-300 transition-all">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-50 text-blue-600 p-2.5 rounded-xl">
+                            <i class="fa-solid fa-location-dot text-base"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm">${item.city}</h4>
+                            <p class="text-xs text-slate-500">
+                                Check-in: ${item.checkin} | Check-out: ${item.checkout} | ${item.adults} Adulto(s)
+                            </p>
+                        </div>
+                    </div>
+
+                    <button onclick="applyHistorySearch('${item.city}', '${item.checkin}', '${item.checkout}', ${item.adults})" class="text-xs bg-slate-100 hover:bg-blue-50 hover:text-blue-600 font-semibold px-3 py-1.5 rounded-lg transition-all">
+                        Repetir Busca
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function applyHistorySearch(city, checkin, checkout, adults) {
+            document.getElementById('destination').value = city;
+            document.getElementById('checkin').value = checkin;
+            document.getElementById('checkout').value = checkout;
+            document.getElementById('adults').value = adults;
+
+            switchTab('search');
+            executeSearch(new Event('submit'));
+        }
+
+        function clearHistory() {
+            searchHistory = [];
+            localStorage.setItem('hotel_history', JSON.stringify([]));
+            renderHistory();
+            showToast("Histórico de buscas limpo.");
+        }
+
+        // --- Notification Toast ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+```
